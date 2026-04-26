@@ -187,4 +187,4 @@ breaking points; both are intentionally small to keep porting cheap.
 
 ## License
 
-MIT. See `LICENSE`.
+Apache-2.0. See `LICENSE`.

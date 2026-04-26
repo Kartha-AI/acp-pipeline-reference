@@ -3,7 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "description": "Reference pipeline: TPC-H customer rows -> ACP customer context.",
-  "license": "MIT",
+  "license": "Apache-2.0",
   "type": "module",
   "main": "./dist/pipeline.config.js",
   "types": "./dist/pipeline.config.d.ts",

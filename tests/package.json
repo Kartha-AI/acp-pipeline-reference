@@ -3,7 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "description": "End-to-end pipeline tests against docker-compose.",
-  "license": "MIT",
+  "license": "Apache-2.0",
   "type": "module",
   "scripts": {
     "test:integration": "vitest run"

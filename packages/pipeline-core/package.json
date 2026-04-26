@@ -3,7 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "description": "Core framework: types, errors, logger, handlers shared across pipelines.",
-  "license": "MIT",
+  "license": "Apache-2.0",
   "type": "module",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
