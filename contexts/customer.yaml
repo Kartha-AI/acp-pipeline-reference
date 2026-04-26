@@ -1,0 +1,103 @@
+# customer.yaml — example ACP context schema for the reference pipeline.
+#
+# This file is documentation only. The pipeline does not read it.
+# Context schemas are loaded into the deployed ACP platform separately —
+# typically via the platform team's `acp ctx push` workflow or the ACP
+# admin API. The pipeline trusts the deployed schema; if your transformer
+# emits a field the schema doesn't allow, /bulk rejects the row.
+#
+# Replace this file with your own context type definitions when adapting
+# the repo. The shape follows ACP's context schema convention:
+#
+#   subtype: <name>
+#   identity:    fields used as the natural key
+#   dimensions:  the 7 buckets, with field types per bucket
+#
+# Field types map to JSONB at storage and JSON-Schema at validation. The
+# reference TPC-H pipeline's transformer (pipelines/tpch-customer/transformer.ts)
+# is the source of truth for what this schema mirrors.
+
+subtype: customer
+description: |
+  A customer entity loaded from a source warehouse via the
+  tpch-customer pipeline. Identity-merged on canonical_name, which
+  the transformer sets to the c_name column (e.g. "Customer#000000042").
+
+identity:
+  canonical_name:
+    description: Unique customer name from the source.
+    type: string
+    required: true
+  source_ref:
+    description: Source-system primary key (c_custkey as string).
+    type: string
+    required: true
+
+dimensions:
+  attributes:
+    custkey:
+      type: string
+      description: Source primary key as string (preserves bigints exactly).
+    phone:
+      type: string
+      nullable: true
+    street_address:
+      type: string
+      nullable: true
+    comment:
+      type: string
+      nullable: true
+      description: Free-text source comment field.
+
+  measures:
+    account_balance_usd:
+      type: number
+      description: Source account balance in USD. Negative values allowed.
+    order_count:
+      type: integer
+      description: Total orders the customer has placed.
+    lifetime_spend_usd:
+      type: number
+      description: Sum of all o_totalprice for this customer.
+
+  actors:
+    customer_name:
+      type: string
+      required: true
+      description: Display name. Same as canonical_name in this pipeline.
+
+  temporals:
+    source_updated_at:
+      type: datetime
+      required: true
+      description: ISO 8601. Tracks the source row's updated_at column.
+    last_order_at:
+      type: datetime
+      nullable: true
+      description: ISO 8601 of the customer's most recent order, or null for prospects.
+
+  locations:
+    nation_key:
+      type: integer
+      description: Source nation_id (n_nationkey).
+    nation:
+      type: string
+      description: Resolved nation name (n_name).
+    region:
+      type: string
+      description: Resolved region name (r_name).
+
+  intents:
+    market_segment:
+      type: string
+      nullable: true
+      description: TPC-H c_mktsegment (AUTOMOBILE/BUILDING/FURNITURE/HOUSEHOLD/MACHINERY).
+
+  processes:
+    activity_state:
+      type: string
+      enum: [active, prospect]
+      description: Derived. "active" if order_count > 0, else "prospect".
+    order_count:
+      type: integer
+      description: Mirrored from measures.order_count for process-level filters.

@@ -1,0 +1,40 @@
+{
+  "name": "@acp/connector-postgres",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Postgres source connector: cursor-streamed extraction with Secrets Manager + IAM auth.",
+  "license": "MIT",
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist",
+    "src"
+  ],
+  "scripts": {
+    "build": "tsc",
+    "clean": "rm -rf dist *.tsbuildinfo",
+    "typecheck": "tsc --noEmit",
+    "test:integration": "vitest run"
+  },
+  "dependencies": {
+    "@acp/pipeline-core": "workspace:*",
+    "@aws-sdk/client-secrets-manager": "^3.658.0",
+    "@aws-sdk/rds-signer": "^3.658.0",
+    "pg": "^8.11.5",
+    "pg-cursor": "^2.10.5"
+  },
+  "devDependencies": {
+    "@types/node": "^20.14.0",
+    "@types/pg": "^8.11.6",
+    "@types/pg-cursor": "^2.7.2",
+    "typescript": "^5.4.5",
+    "vitest": "^1.6.0"
+  }
+}

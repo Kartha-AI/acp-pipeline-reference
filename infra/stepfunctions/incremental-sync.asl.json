@@ -1,0 +1,118 @@
+{
+  "Comment": "ACP pipeline — incremental sync. Smaller partitions, Lambda-based extractor, /bulk drainer. Fully automated.",
+  "StartAt": "PlanPartitions",
+  "TimeoutSeconds": 7200,
+  "States": {
+    "PlanPartitions": {
+      "Type": "Task",
+      "Resource": "arn:aws:states:::lambda:invoke",
+      "Parameters": {
+        "FunctionName": "${TriggerLambdaArn}",
+        "Payload": {
+          "pipelineName": "${PipelineName}",
+          "mode": "incremental",
+          "since.$": "$.since"
+        }
+      },
+      "ResultPath": "$.trigger",
+      "ResultSelector": { "result.$": "$.Payload" },
+      "Retry": [
+        {
+          "ErrorEquals": ["Lambda.ServiceException", "Lambda.AWSLambdaException", "States.TaskFailed"],
+          "IntervalSeconds": 2,
+          "MaxAttempts": 3,
+          "BackoffRate": 2.0
+        }
+      ],
+      "Catch": [
+        { "ErrorEquals": ["States.ALL"], "ResultPath": "$.error", "Next": "RecordFailure" }
+      ],
+      "Next": "ExtractAll"
+    },
+
+    "ExtractAll": {
+      "Type": "Map",
+      "ItemProcessor": {
+        "ProcessorConfig": { "Mode": "DISTRIBUTED", "ExecutionType": "STANDARD" },
+        "StartAt": "RunExtractor",
+        "States": {
+          "RunExtractor": {
+            "Type": "Task",
+            "Resource": "arn:aws:states:::lambda:invoke",
+            "Parameters": {
+              "FunctionName": "${ExtractorLambdaArn}",
+              "Payload": {
+                "pipelineName.$": "$.pipelineName",
+                "mode.$": "$.mode",
+                "batchId.$": "$.batchId",
+                "partition.$": "$.partition",
+                "since.$": "$.since"
+              }
+            },
+            "Retry": [
+              {
+                "ErrorEquals": ["Lambda.ServiceException", "Lambda.AWSLambdaException", "States.TaskFailed"],
+                "IntervalSeconds": 4,
+                "MaxAttempts": 2,
+                "BackoffRate": 2.0
+              }
+            ],
+            "End": true
+          }
+        }
+      },
+      "ItemsPath": "$.trigger.result.partitions",
+      "ItemSelector": {
+        "pipelineName.$": "$.trigger.result.pipelineName",
+        "mode.$": "$.trigger.result.mode",
+        "batchId.$": "$.trigger.result.batchId",
+        "partition.$": "$$.Map.Item.Value",
+        "since.$": "$.trigger.result.watermarkUsed"
+      },
+      "MaxConcurrency": 10,
+      "ResultPath": "$.extractResults",
+      "Catch": [
+        { "ErrorEquals": ["States.ALL"], "ResultPath": "$.error", "Next": "RecordFailure" }
+      ],
+      "Next": "Drain"
+    },
+
+    "Drain": {
+      "Type": "Task",
+      "Resource": "arn:aws:states:::lambda:invoke",
+      "Parameters": {
+        "FunctionName": "${DrainerLambdaArn}",
+        "Payload": {
+          "pipelineName.$": "$.trigger.result.pipelineName",
+          "batchId.$": "$.trigger.result.batchId",
+          "runId.$": "$.trigger.result.runId",
+          "watermarkAtStart.$": "$.trigger.result.watermarkAtStart"
+        }
+      },
+      "ResultPath": "$.drain",
+      "ResultSelector": { "result.$": "$.Payload" },
+      "Retry": [
+        {
+          "ErrorEquals": ["Lambda.ServiceException", "Lambda.AWSLambdaException"],
+          "IntervalSeconds": 5,
+          "MaxAttempts": 2,
+          "BackoffRate": 2.0
+        }
+      ],
+      "Catch": [
+        { "ErrorEquals": ["States.ALL"], "ResultPath": "$.error", "Next": "RecordFailure" }
+      ],
+      "Next": "Succeeded"
+    },
+
+    "Succeeded": {
+      "Type": "Succeed"
+    },
+
+    "RecordFailure": {
+      "Type": "Fail",
+      "Error": "PipelineFailure",
+      "Cause": "See $.error and the linked pipeline_runs row for details."
+    }
+  }
+}

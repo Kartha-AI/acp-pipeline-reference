@@ -1,0 +1,24 @@
+{
+  "name": "@acp/integration-tests",
+  "version": "0.1.0",
+  "private": true,
+  "description": "End-to-end pipeline tests against docker-compose.",
+  "license": "MIT",
+  "type": "module",
+  "scripts": {
+    "test:integration": "vitest run"
+  },
+  "dependencies": {
+    "@acp/connector-postgres": "workspace:*",
+    "@acp/pipeline-core": "workspace:*",
+    "@acp/pipeline-tpch-customer": "workspace:*",
+    "pg": "^8.11.5"
+  },
+  "devDependencies": {
+    "@faker-js/faker": "^8.4.1",
+    "@types/node": "^20.14.0",
+    "@types/pg": "^8.11.6",
+    "typescript": "^5.4.5",
+    "vitest": "^1.6.0"
+  }
+}

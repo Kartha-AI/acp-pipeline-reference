@@ -1,0 +1,40 @@
+{
+  "name": "@acp/pipeline-core",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Core framework: types, errors, logger, handlers shared across pipelines.",
+  "license": "MIT",
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist",
+    "src"
+  ],
+  "scripts": {
+    "build": "tsc",
+    "clean": "rm -rf dist *.tsbuildinfo",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@aws-sdk/client-secrets-manager": "^3.658.0",
+    "@aws-sdk/client-sqs": "^3.658.0",
+    "pg": "^8.11.5",
+    "pg-copy-streams": "^6.0.6",
+    "pino": "^9.2.0",
+    "uuid": "^9.0.1"
+  },
+  "devDependencies": {
+    "@types/node": "^20.14.0",
+    "@types/pg": "^8.11.6",
+    "@types/pg-copy-streams": "^1.2.5",
+    "@types/uuid": "^9.0.8",
+    "typescript": "^5.4.5"
+  }
+}

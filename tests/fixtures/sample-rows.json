@@ -1,0 +1,170 @@
+{
+  "$schema": "Internal fixture: paired (input row, expected staging row) for the TPC-H customer transformer.",
+  "rows": [
+    {
+      "name": "active-customer-with-orders",
+      "input": {
+        "c_custkey": 1,
+        "c_name": "Customer#000000001",
+        "c_address": "11 Reference Way",
+        "c_nationkey": 24,
+        "c_phone": "555-0001",
+        "c_acctbal": "5023.45",
+        "c_mktsegment": "BUILDING",
+        "c_comment": "first customer",
+        "updated_at": "2026-04-01T12:00:00Z",
+        "n_nationkey": 24,
+        "n_name": "UNITED STATES",
+        "n_regionkey": 1,
+        "r_name": "AMERICA",
+        "order_count": 3,
+        "total_orderprice": "12345.67",
+        "last_order_date": "2026-03-29"
+      },
+      "expected": {
+        "subtype": "customer",
+        "source": "tpch",
+        "source_ref": "1",
+        "canonical_name": "Customer#000000001",
+        "context": {
+          "attributes": {
+            "custkey": "1",
+            "phone": "555-0001",
+            "street_address": "11 Reference Way",
+            "comment": "first customer"
+          },
+          "measures": {
+            "account_balance_usd": 5023.45,
+            "order_count": 3,
+            "lifetime_spend_usd": 12345.67
+          },
+          "actors": { "customer_name": "Customer#000000001" },
+          "temporals": {
+            "source_updated_at": "2026-04-01T12:00:00.000Z",
+            "last_order_at": "2026-03-29T00:00:00.000Z"
+          },
+          "locations": {
+            "nation_key": 24,
+            "nation": "UNITED STATES",
+            "region": "AMERICA"
+          },
+          "intents": { "market_segment": "BUILDING" },
+          "processes": {
+            "activity_state": "active",
+            "order_count": 3
+          }
+        }
+      }
+    },
+    {
+      "name": "prospect-customer-no-orders",
+      "input": {
+        "c_custkey": 99,
+        "c_name": "Customer#000000099",
+        "c_address": null,
+        "c_nationkey": 6,
+        "c_phone": null,
+        "c_acctbal": "0.00",
+        "c_mktsegment": "MACHINERY",
+        "c_comment": null,
+        "updated_at": "2026-04-10T08:30:00Z",
+        "n_nationkey": 6,
+        "n_name": "FRANCE",
+        "n_regionkey": 3,
+        "r_name": "EUROPE",
+        "order_count": 0,
+        "total_orderprice": null,
+        "last_order_date": null
+      },
+      "expected": {
+        "subtype": "customer",
+        "source": "tpch",
+        "source_ref": "99",
+        "canonical_name": "Customer#000000099",
+        "context": {
+          "attributes": {
+            "custkey": "99",
+            "phone": null,
+            "street_address": null,
+            "comment": null
+          },
+          "measures": {
+            "account_balance_usd": 0,
+            "order_count": 0,
+            "lifetime_spend_usd": 0
+          },
+          "actors": { "customer_name": "Customer#000000099" },
+          "temporals": {
+            "source_updated_at": "2026-04-10T08:30:00.000Z",
+            "last_order_at": null
+          },
+          "locations": {
+            "nation_key": 6,
+            "nation": "FRANCE",
+            "region": "EUROPE"
+          },
+          "intents": { "market_segment": "MACHINERY" },
+          "processes": {
+            "activity_state": "prospect",
+            "order_count": 0
+          }
+        }
+      }
+    },
+    {
+      "name": "asia-customer-with-bigint-key",
+      "input": {
+        "c_custkey": "200000000003",
+        "c_name": "Customer#000000003",
+        "c_address": "200 Pacific Rim",
+        "c_nationkey": 18,
+        "c_phone": "+86-10-555-0003",
+        "c_acctbal": "9876.54",
+        "c_mktsegment": "AUTOMOBILE",
+        "c_comment": "key exceeds Number.MAX_SAFE_INTEGER region",
+        "updated_at": "2026-04-15T14:00:00Z",
+        "n_nationkey": 18,
+        "n_name": "CHINA",
+        "n_regionkey": 2,
+        "r_name": "ASIA",
+        "order_count": 12,
+        "total_orderprice": "456789.01",
+        "last_order_date": "2026-04-10"
+      },
+      "expected": {
+        "subtype": "customer",
+        "source": "tpch",
+        "source_ref": "200000000003",
+        "canonical_name": "Customer#000000003",
+        "context": {
+          "attributes": {
+            "custkey": "200000000003",
+            "phone": "+86-10-555-0003",
+            "street_address": "200 Pacific Rim",
+            "comment": "key exceeds Number.MAX_SAFE_INTEGER region"
+          },
+          "measures": {
+            "account_balance_usd": 9876.54,
+            "order_count": 12,
+            "lifetime_spend_usd": 456789.01
+          },
+          "actors": { "customer_name": "Customer#000000003" },
+          "temporals": {
+            "source_updated_at": "2026-04-15T14:00:00.000Z",
+            "last_order_at": "2026-04-10T00:00:00.000Z"
+          },
+          "locations": {
+            "nation_key": 18,
+            "nation": "CHINA",
+            "region": "ASIA"
+          },
+          "intents": { "market_segment": "AUTOMOBILE" },
+          "processes": {
+            "activity_state": "active",
+            "order_count": 12
+          }
+        }
+      }
+    }
+  ]
+}

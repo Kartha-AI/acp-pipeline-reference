@@ -1,0 +1,39 @@
+{
+  "name": "@acp/cdk",
+  "version": "0.1.0",
+  "private": true,
+  "description": "CDK app deploying the ACP pipeline to AWS.",
+  "license": "MIT",
+  "type": "module",
+  "scripts": {
+    "build": "tsc",
+    "clean": "rm -rf cdk.out dist *.tsbuildinfo",
+    "typecheck": "tsc --noEmit",
+    "synth": "cdk synth --quiet",
+    "diff": "cdk diff",
+    "deploy": "cdk deploy"
+  },
+  "dependencies": {
+    "@acp/connector-postgres": "workspace:*",
+    "@acp/pipeline-core": "workspace:*",
+    "@acp/pipeline-tpch-customer": "workspace:*",
+    "@aws-sdk/client-secrets-manager": "^3.658.0",
+    "@aws-sdk/client-sqs": "^3.658.0",
+    "@aws-sdk/rds-signer": "^3.658.0",
+    "aws-cdk-lib": "^2.154.0",
+    "constructs": "^10.3.0",
+    "pg": "^8.11.5",
+    "pg-copy-streams": "^6.0.6",
+    "pg-cursor": "^2.10.5",
+    "pino": "^9.2.0",
+    "source-map-support": "^0.5.21",
+    "thread-stream": "^3.1.0",
+    "uuid": "^9.0.1"
+  },
+  "devDependencies": {
+    "@types/node": "^20.14.0",
+    "aws-cdk": "^2.154.0",
+    "esbuild": "^0.21.5",
+    "typescript": "^5.4.5"
+  }
+}

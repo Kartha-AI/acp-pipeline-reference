@@ -1,0 +1,66 @@
+# Local-dev databases for the ACP pipeline.
+#
+# source-pg simulates an enterprise warehouse with the TPC-H subset.
+# acp-pg holds the staging schema + helpers from migrations/, plus the
+# pgvector extension that the real ACP platform relies on.
+#
+# Both containers auto-initialize on first boot:
+#   * source-pg: ./source-data/tpch-schema.sql -> tables only (seed via `pnpm seed`)
+#   * acp-pg:    ./local-dev/00_acp_stub.sql   -> local stub of context_objects/change_log
+#                ./migrations/*.sql            -> staging template, helpers, etc.
+#
+# Production deploys apply only ./migrations/* against an existing ACP RDS;
+# the local stub is *not* applied to production (see local-dev/00_acp_stub.sql).
+
+services:
+  source-pg:
+    image: postgres:16
+    container_name: acp-source-pg
+    environment:
+      POSTGRES_DB: tpch
+      POSTGRES_USER: tpch
+      POSTGRES_PASSWORD: localdev
+      PGDATA: /var/lib/postgresql/data/pgdata
+    ports:
+      - "5433:5432"
+    volumes:
+      - source-pg-data:/var/lib/postgresql/data
+      - ./source-data/tpch-schema.sql:/docker-entrypoint-initdb.d/00_tpch_schema.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U tpch -d tpch"]
+      interval: 2s
+      timeout: 5s
+      retries: 30
+
+  acp-pg:
+    # pgvector image is the same Postgres 16 used in production with the
+    # vector extension preinstalled — matches what the real ACP platform
+    # runs against, so behaviors observed locally translate to AWS RDS.
+    image: pgvector/pgvector:pg16
+    container_name: acp-pg
+    environment:
+      POSTGRES_DB: acp
+      POSTGRES_USER: acp
+      POSTGRES_PASSWORD: localdev
+      PGDATA: /var/lib/postgresql/data/pgdata
+    ports:
+      - "5432:5432"
+    volumes:
+      - acp-pg-data:/var/lib/postgresql/data
+      # 00_acp_stub.sql runs first (alphabetical), creating local-only stubs of
+      # context_objects/change_log so the pipeline migrations have somewhere to write.
+      - ./local-dev/00_acp_stub.sql:/docker-entrypoint-initdb.d/00_acp_stub.sql:ro
+      - ./migrations/001_staging_template.sql:/docker-entrypoint-initdb.d/001_staging_template.sql:ro
+      - ./migrations/002_promote_function.sql:/docker-entrypoint-initdb.d/002_promote_function.sql:ro
+      - ./migrations/003_helper_functions.sql:/docker-entrypoint-initdb.d/003_helper_functions.sql:ro
+      - ./migrations/004_dead_letter.sql:/docker-entrypoint-initdb.d/004_dead_letter.sql:ro
+      - ./migrations/005_pipeline_runs.sql:/docker-entrypoint-initdb.d/005_pipeline_runs.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U acp -d acp"]
+      interval: 2s
+      timeout: 5s
+      retries: 30
+
+volumes:
+  source-pg-data:
+  acp-pg-data:

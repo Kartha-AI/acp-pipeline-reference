@@ -1,0 +1,24 @@
+{
+  "app": "node --import=tsx/esm bin/app.ts",
+  "watch": {
+    "include": ["bin/**", "lib/**", "lambda/**", "ecs/**"],
+    "exclude": ["node_modules/**", "cdk.out/**", "dist/**"]
+  },
+  "context": {
+    "@aws-cdk/aws-iam:minimizePolicies": true,
+    "@aws-cdk/core:checkSecretUsage": true,
+    "@aws-cdk/core:newStyleStackSynthesis": true,
+    "@aws-cdk/aws-ecs:disableExplicitDeploymentControllerForCircuitBreaker": true,
+    "pipelineName": "tpch_customer",
+    "stagePrefix": "acp",
+    "logRetentionDays": 30,
+    "vpcId": "vpc-REPLACE-ME",
+    "privateSubnetIds": "subnet-REPLACEa,subnet-REPLACEb,subnet-REPLACEc",
+    "availabilityZones": "us-east-1a,us-east-1b,us-east-1c",
+    "acpPostgresSecretArn": "arn:aws:secretsmanager:us-east-1:000000000000:secret:acp/postgres-AbCdEf",
+    "sourcePostgresSecretArn": "arn:aws:secretsmanager:us-east-1:000000000000:secret:acp/source/tpch-GhIjKl",
+    "acpBulkApiUrl": "https://acp.example.com",
+    "acpBulkApiTokenSecretArn": "arn:aws:secretsmanager:us-east-1:000000000000:secret:acp/bulk-api-token-MnOpQr",
+    "incrementalScheduleCron": "cron(0 */6 * * ? *)"
+  }
+}

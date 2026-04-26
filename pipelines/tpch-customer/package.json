@@ -1,0 +1,40 @@
+{
+  "name": "@acp/pipeline-tpch-customer",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Reference pipeline: TPC-H customer rows -> ACP customer context.",
+  "license": "MIT",
+  "type": "module",
+  "main": "./dist/pipeline.config.js",
+  "types": "./dist/pipeline.config.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/pipeline.config.d.ts",
+      "import": "./dist/pipeline.config.js"
+    },
+    "./transformer": {
+      "types": "./dist/transformer.d.ts",
+      "import": "./dist/transformer.js"
+    }
+  },
+  "files": [
+    "dist",
+    "transformer.ts",
+    "pipeline.config.ts"
+  ],
+  "scripts": {
+    "build": "tsc",
+    "clean": "rm -rf dist *.tsbuildinfo",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@acp/connector-postgres": "workspace:*",
+    "@acp/pipeline-core": "workspace:*"
+  },
+  "devDependencies": {
+    "@types/node": "^20.14.0",
+    "typescript": "^5.4.5",
+    "vitest": "^1.6.0"
+  }
+}

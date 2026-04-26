@@ -1,0 +1,200 @@
+{
+  "Comment": "ACP pipeline — initial-mode bulk load. Optional human-approval gate before promote.",
+  "StartAt": "PlanPartitions",
+  "TimeoutSeconds": 43200,
+  "States": {
+    "PlanPartitions": {
+      "Type": "Task",
+      "Resource": "arn:aws:states:::lambda:invoke",
+      "Parameters": {
+        "FunctionName": "${TriggerLambdaArn}",
+        "Payload": {
+          "pipelineName": "${PipelineName}",
+          "mode": "initial",
+          "batchId.$": "$.batchId",
+          "since.$": "$.since"
+        }
+      },
+      "ResultPath": "$.trigger",
+      "ResultSelector": { "result.$": "$.Payload" },
+      "Retry": [
+        {
+          "ErrorEquals": ["Lambda.ServiceException", "Lambda.AWSLambdaException", "Lambda.SdkClientException", "States.TaskFailed"],
+          "IntervalSeconds": 2,
+          "MaxAttempts": 3,
+          "BackoffRate": 2.0
+        }
+      ],
+      "Catch": [
+        { "ErrorEquals": ["States.ALL"], "ResultPath": "$.error", "Next": "RecordFailure" }
+      ],
+      "Next": "ExtractAll"
+    },
+
+    "ExtractAll": {
+      "Type": "Map",
+      "ItemProcessor": {
+        "ProcessorConfig": { "Mode": "DISTRIBUTED", "ExecutionType": "STANDARD" },
+        "StartAt": "RunExtractor",
+        "States": {
+          "RunExtractor": {
+            "Type": "Task",
+            "Resource": "arn:aws:states:::ecs:runTask.sync",
+            "Parameters": {
+              "Cluster": "${EcsClusterArn}",
+              "TaskDefinition": "${ExtractorTaskDefArn}",
+              "LaunchType": "FARGATE",
+              "NetworkConfiguration": {
+                "AwsvpcConfiguration": {
+                  "Subnets.$": "States.StringSplit('${Subnets}', ',')",
+                  "SecurityGroups.$": "States.StringSplit('${SecurityGroups}', ',')",
+                  "AssignPublicIp": "DISABLED"
+                }
+              },
+              "Overrides": {
+                "ContainerOverrides": [
+                  {
+                    "Name": "extractor",
+                    "Environment": [
+                      { "Name": "PIPELINE_NAME", "Value.$": "$.pipelineName" },
+                      { "Name": "MODE", "Value.$": "$.mode" },
+                      { "Name": "BATCH_ID", "Value.$": "$.batchId" },
+                      { "Name": "RUN_ID", "Value.$": "$.runId" },
+                      { "Name": "PARTITION_JSON", "Value.$": "States.JsonToString($.partition)" }
+                    ]
+                  }
+                ]
+              }
+            },
+            "Retry": [
+              {
+                "ErrorEquals": ["States.TaskFailed", "ECS.AmazonECSException"],
+                "IntervalSeconds": 30,
+                "MaxAttempts": 2,
+                "BackoffRate": 2.0
+              }
+            ],
+            "End": true
+          }
+        }
+      },
+      "ItemsPath": "$.trigger.result.partitions",
+      "ItemSelector": {
+        "pipelineName.$": "$.trigger.result.pipelineName",
+        "mode.$": "$.trigger.result.mode",
+        "batchId.$": "$.trigger.result.batchId",
+        "runId.$": "$.trigger.result.runId",
+        "partition.$": "$$.Map.Item.Value"
+      },
+      "MaxConcurrency": 25,
+      "ResultPath": "$.extractResults",
+      "Catch": [
+        { "ErrorEquals": ["States.ALL"], "ResultPath": "$.error", "Next": "RecordFailure" }
+      ],
+      "Next": "ValidateStaging"
+    },
+
+    "ValidateStaging": {
+      "Type": "Task",
+      "Resource": "arn:aws:states:::lambda:invoke",
+      "Parameters": {
+        "FunctionName": "${ValidateLambdaArn}",
+        "Payload": {
+          "pipelineName.$": "$.trigger.result.pipelineName",
+          "batchId.$": "$.trigger.result.batchId"
+        }
+      },
+      "ResultPath": "$.validation",
+      "ResultSelector": { "result.$": "$.Payload" },
+      "Retry": [
+        {
+          "ErrorEquals": ["Lambda.ServiceException", "Lambda.AWSLambdaException"],
+          "IntervalSeconds": 2,
+          "MaxAttempts": 2,
+          "BackoffRate": 2.0
+        }
+      ],
+      "Catch": [
+        { "ErrorEquals": ["States.ALL"], "ResultPath": "$.error", "Next": "RecordFailure" }
+      ],
+      "Next": "ApprovalGate"
+    },
+
+    "ApprovalGate": {
+      "Type": "Choice",
+      "Choices": [
+        {
+          "Variable": "$.requireApproval",
+          "BooleanEquals": true,
+          "Next": "AwaitHumanApproval"
+        }
+      ],
+      "Default": "Promote"
+    },
+
+    "AwaitHumanApproval": {
+      "Type": "Wait",
+      "Comment": "Placeholder Wait state. Production deploys typically swap this for a Task with Resource=arn:aws:states:::sns:publish.waitForTaskToken so an operator can approve via callback. Wait keeps the ASL valid + executable without an SNS topic dependency.",
+      "Seconds": 1,
+      "Next": "Promote"
+    },
+
+    "Promote": {
+      "Type": "Task",
+      "Resource": "arn:aws:states:::lambda:invoke",
+      "Parameters": {
+        "FunctionName": "${PromoterLambdaArn}",
+        "Payload": {
+          "pipelineName.$": "$.trigger.result.pipelineName",
+          "batchId.$": "$.trigger.result.batchId",
+          "runId.$": "$.trigger.result.runId",
+          "watermarkAtStart.$": "$.trigger.result.watermarkAtStart"
+        }
+      },
+      "ResultPath": "$.promote",
+      "ResultSelector": { "result.$": "$.Payload" },
+      "Retry": [],
+      "Catch": [
+        { "ErrorEquals": ["States.ALL"], "ResultPath": "$.error", "Next": "RecordFailure" }
+      ],
+      "Next": "Cleanup"
+    },
+
+    "Cleanup": {
+      "Type": "Task",
+      "Resource": "arn:aws:states:::lambda:invoke",
+      "Parameters": {
+        "FunctionName": "${CleanupLambdaArn}",
+        "Payload": {
+          "pipelineName.$": "$.trigger.result.pipelineName",
+          "retentionDays": 7,
+          "apply": false
+        }
+      },
+      "ResultPath": "$.cleanup",
+      "ResultSelector": { "result.$": "$.Payload" },
+      "Retry": [
+        {
+          "ErrorEquals": ["Lambda.ServiceException"],
+          "IntervalSeconds": 2,
+          "MaxAttempts": 2,
+          "BackoffRate": 2.0
+        }
+      ],
+      "Catch": [
+        { "ErrorEquals": ["States.ALL"], "ResultPath": "$.error", "Next": "RecordFailure" }
+      ],
+      "Next": "Succeeded"
+    },
+
+    "Succeeded": {
+      "Type": "Succeed"
+    },
+
+    "RecordFailure": {
+      "Type": "Fail",
+      "Error": "PipelineFailure",
+      "Cause": "See $.error and the linked pipeline_runs row for details."
+    }
+  }
+}
